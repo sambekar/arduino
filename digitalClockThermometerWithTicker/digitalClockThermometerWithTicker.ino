@@ -2,6 +2,7 @@
 #include <MD_MAX72xx.h>
 #include <SPI.h>
 #include "myfonts.h"
+#include "Ticker.h"
 
 
 #include <DS3231.h>
@@ -94,9 +95,13 @@ void getDateTimeDay(char *psz) {
   sprintf(psz, "%s %d %s %04d", dd, mon2str(mm, szBuf, sizeof(szBuf) - 1), (yyy + 2000));
 }
 
+Ticker timerDisplayDate(displayDate, 1000, 0, MILLIS);
+Ticker timerDisplayDayOfWeek(displayDayOfWeek, 1000, 0, MILLIS);
+Ticker timerDisplayTime(displayTime, 1000, 0, MILLIS);
+Ticker timerDisplayTemperature(displayTemperature, 1000, 0, MILLIS);
+
 
 void setup(void) {
-  Serial.begin(9600);
   Wire.begin();
   P.begin(MAX_ZONES);
   P.setZone(ZONE_LOWER, 0, ZONE_SIZE - 1);
@@ -105,6 +110,10 @@ void setup(void) {
   P.setFont(ZONE_UPPER, BigFontUpper);
   P.setIntensity(1);
   P.setCharSpacing(P.getCharSpacing() * 0);  // double height --> double spacing
+  timerDisplayDate.start();
+  timerDisplayDayOfWeek.start();
+  timerDisplayTime.start();
+  timerDisplayTemperature.start();
 }
 
 //int acquisitionMode = 0;
@@ -115,60 +124,68 @@ void loop(void) {
   static uint8_t cycle = 0;
   P.displayAnimate();
 
+
+  timerDisplayDate.update();
+  timerDisplayDayOfWeek.update();
+  timerDisplayTime.update();
+  timerDisplayTemperature.update();
+}
+
+void displayDate() {
   if (P.getZoneStatus(ZONE_LOWER) && P.getZoneStatus(ZONE_UPPER)) {
-    switch (cycle) {
-      default:
-        cycle = 0;
-        break;
-      case 0:
-        getDate(szMesg);
-        P.setFont(ZONE_LOWER, BigFontLower);
-        P.setFont(ZONE_UPPER, BigFontUpper);
-        P.setCharSpacing(1);
-        P.displayZoneText(ZONE_LOWER, szMesg, PA_RIGHT, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_DOWN);
-        P.displayZoneText(ZONE_UPPER, szMesg, PA_RIGHT, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_UP);
-        cycle++;
-        break;
-
-      case 1:
-
-        getTime(szTime, flasher);
-        flasher = !flasher;
-        dow2str(Clock.getDoW(), szMesg, 15);
-        //strcpy(szMesg, szTime);
-        P.setFont(ZONE_LOWER, BigFontLower);
-        P.setFont(ZONE_UPPER, BigFontUpper);
-        P.setCharSpacing(1);
-        P.displayZoneText(ZONE_LOWER, szMesg, PA_CENTER, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_DOWN);
-        P.displayZoneText(ZONE_UPPER, szMesg, PA_CENTER, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_UP);
-        Serial.println(s);
-        if (s % 2 == 0) { cycle++; }
-        break;
-      case 2:
-        getTimeWithoutFlasher(szTime);
-        P.setFont(ZONE_LOWER, BigFontLower);
-        P.setFont(ZONE_UPPER, BigFontUpper);
-        P.setCharSpacing(0);
-        P.displayZoneText(ZONE_LOWER, szTime, PA_CENTER, SCROLL_SPEED, 998, PA_PRINT, PA_NO_EFFECT);
-        P.displayZoneText(ZONE_UPPER, szTime, PA_CENTER, SCROLL_SPEED, 998, PA_PRINT, PA_NO_EFFECT);
-        Serial.println(s);
-        if (s % 15 == 0) { cycle++; }
-        break;
-      case 3:
-        dtostrf(Clock.getTemperature(), 3, 1, szMesg);
-        strcat(szMesg, "~");
-        P.setFont(ZONE_LOWER, BigFontLower);
-        P.setFont(ZONE_UPPER, BigFontUpper);
-        P.setCharSpacing(0);
-        P.displayZoneText(ZONE_LOWER, szMesg, PA_RIGHT, 500, 5000, PA_DISSOLVE, PA_DISSOLVE);
-        P.displayZoneText(ZONE_UPPER, szMesg, PA_RIGHT, 500, 5000, PA_DISSOLVE, PA_DISSOLVE);
-        cycle++;
-        cycle++;
-        break;
-    }
-    //cycle = (cycle + 1) % 4;
+    getDate(szMesg);
+    P.setFont(ZONE_LOWER, BigFontLower);
+    P.setFont(ZONE_UPPER, BigFontUpper);
+    P.setCharSpacing(1);
+    P.displayZoneText(ZONE_LOWER, szMesg, PA_RIGHT, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_DOWN_RIGHT);
+    P.displayZoneText(ZONE_UPPER, szMesg, PA_RIGHT, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_UP_LEFT);
     P.displayClear();
     P.synchZoneStart();
-    Serial.println(cycle);
+  }
+}
+
+void displayDayOfWeek() {
+  static bool flasher = false;
+  if (P.getZoneStatus(ZONE_LOWER) && P.getZoneStatus(ZONE_UPPER)) {
+    getTime(szTime, flasher);
+    flasher = !flasher;
+    dow2str(Clock.getDoW(), szMesg, 15);
+    //strcpy(szMesg, szTime);
+    P.setFont(ZONE_LOWER, BigFontLower);
+    P.setFont(ZONE_UPPER, BigFontUpper);
+    P.setCharSpacing(1);
+    P.displayZoneText(ZONE_LOWER, szMesg, PA_CENTER, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_DOWN_LEFT);
+    P.displayZoneText(ZONE_UPPER, szMesg, PA_CENTER, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_UP_RIGHT);
+    P.displayClear();
+    P.synchZoneStart();
+  }
+}
+
+void displayTime() {
+  static bool flasher = false;
+  if (P.getZoneStatus(ZONE_LOWER) && P.getZoneStatus(ZONE_UPPER)) {
+    getTime(szTime, flasher);
+    flasher = !flasher;
+    P.setFont(ZONE_LOWER, BigFontLower);
+    P.setFont(ZONE_UPPER, BigFontUpper);
+    P.setCharSpacing(1);
+    P.displayZoneText(ZONE_LOWER, szTime, PA_CENTER, SCROLL_SPEED, 998, PA_PRINT, PA_NO_EFFECT);
+    P.displayZoneText(ZONE_UPPER, szTime, PA_CENTER, SCROLL_SPEED, 998, PA_PRINT, PA_NO_EFFECT);
+    P.displayClear();
+    P.synchZoneStart();
+  }
+}
+
+void displayTemperature() {
+  if (P.getZoneStatus(ZONE_LOWER) && P.getZoneStatus(ZONE_UPPER)) {
+    dtostrf(Clock.getTemperature(), 3, 1, szMesg);
+    strcat(szMesg, "~");
+    P.setFont(ZONE_LOWER, BigFontLower);
+    P.setFont(ZONE_UPPER, BigFontUpper);
+    P.setCharSpacing(1);
+    P.displayZoneText(ZONE_LOWER, szMesg, PA_RIGHT, SCROLL_SPEED, 5000, PA_WIPE_CURSOR, PA_WIPE_CURSOR);
+    P.displayZoneText(ZONE_UPPER, szMesg, PA_RIGHT, SCROLL_SPEED, 5000, PA_WIPE_CURSOR, PA_WIPE_CURSOR);
+    P.displayClear();
+    P.synchZoneStart();
   }
 }

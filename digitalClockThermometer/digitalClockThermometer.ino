@@ -21,9 +21,13 @@ uint16_t h, m, s;
 #define SCROLL_SPEED 30
 #define ZONE_UPPER 1
 #define ZONE_LOWER 0
-#define CLK_PIN 13
-#define DATA_PIN 11
-#define CS_PIN 10
+//#define CLK_PIN 13
+//#define DATA_PIN 11
+//#define CS_PIN 10
+#define CS_PIN    D4 // or SS // you can set it to any pin
+#define CLK_PIN   D5 // or SCK
+#define DATA_PIN  D7 // or MOSI
+
 MD_Parola P = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
@@ -103,7 +107,7 @@ void setup(void) {
   P.setFont(ZONE_LOWER, BigFontLower);
   P.setZone(ZONE_UPPER, ZONE_SIZE, MAX_DEVICES - 1);
   P.setFont(ZONE_UPPER, BigFontUpper);
-  P.setIntensity(1);
+  P.setIntensity(4);
   P.setCharSpacing(P.getCharSpacing() * 0);  // double height --> double spacing
 }
 
@@ -125,8 +129,8 @@ void loop(void) {
         P.setFont(ZONE_LOWER, BigFontLower);
         P.setFont(ZONE_UPPER, BigFontUpper);
         P.setCharSpacing(1);
-        P.displayZoneText(ZONE_LOWER, szMesg, PA_RIGHT, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_DOWN);
-        P.displayZoneText(ZONE_UPPER, szMesg, PA_RIGHT, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_UP);
+        P.displayZoneText(ZONE_LOWER, szMesg, PA_RIGHT, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_DOWN_RIGHT);
+        P.displayZoneText(ZONE_UPPER, szMesg, PA_RIGHT, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_UP_LEFT);
         cycle++;
         break;
 
@@ -139,29 +143,30 @@ void loop(void) {
         P.setFont(ZONE_LOWER, BigFontLower);
         P.setFont(ZONE_UPPER, BigFontUpper);
         P.setCharSpacing(1);
-        P.displayZoneText(ZONE_LOWER, szMesg, PA_CENTER, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_DOWN);
-        P.displayZoneText(ZONE_UPPER, szMesg, PA_CENTER, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_UP);
+        P.displayZoneText(ZONE_LOWER, szMesg, PA_CENTER, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_DOWN_LEFT);
+        P.displayZoneText(ZONE_UPPER, szMesg, PA_CENTER, SCROLL_SPEED, 1000, PA_SCROLL_LEFT, PA_SCROLL_UP_RIGHT);
         Serial.println(s);
         if (s % 2 == 0) { cycle++; }
         break;
       case 2:
-        getTimeWithoutFlasher(szTime);
+        getTime(szTime, flasher);
+        flasher = !flasher;
         P.setFont(ZONE_LOWER, BigFontLower);
         P.setFont(ZONE_UPPER, BigFontUpper);
-        P.setCharSpacing(0);
+        P.setCharSpacing(1);
         P.displayZoneText(ZONE_LOWER, szTime, PA_CENTER, SCROLL_SPEED, 998, PA_PRINT, PA_NO_EFFECT);
         P.displayZoneText(ZONE_UPPER, szTime, PA_CENTER, SCROLL_SPEED, 998, PA_PRINT, PA_NO_EFFECT);
         Serial.println(s);
-        if (s % 15 == 0) { cycle++; }
+        if (s % 20 == 0) { cycle++; }
         break;
       case 3:
         dtostrf(Clock.getTemperature(), 3, 1, szMesg);
         strcat(szMesg, "~");
         P.setFont(ZONE_LOWER, BigFontLower);
         P.setFont(ZONE_UPPER, BigFontUpper);
-        P.setCharSpacing(0);
-        P.displayZoneText(ZONE_LOWER, szMesg, PA_RIGHT, 500, 5000, PA_DISSOLVE, PA_DISSOLVE);
-        P.displayZoneText(ZONE_UPPER, szMesg, PA_RIGHT, 500, 5000, PA_DISSOLVE, PA_DISSOLVE);
+        P.setCharSpacing(1);
+        P.displayZoneText(ZONE_LOWER, szMesg, PA_RIGHT, SCROLL_SPEED, 5000, PA_WIPE_CURSOR, PA_WIPE_CURSOR);
+        P.displayZoneText(ZONE_UPPER, szMesg, PA_RIGHT, SCROLL_SPEED, 5000, PA_WIPE_CURSOR, PA_WIPE_CURSOR);
         cycle++;
         cycle++;
         break;
